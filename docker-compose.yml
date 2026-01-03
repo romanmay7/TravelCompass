@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # 1. The Frontend
+  frontend:
+    build: ./travel-compass-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend-api
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+    networks:
+      - travel-network
+
+  # 2. The API Backend (Kafka Producer)
+  backend-api:
+    build: ./travel-compass-core
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # MATCH THE WORKER EXACTLY BELOW:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/travel_db
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - travel-network
+
+  # 3. The Travel Plan Worker (Kafka Consumer)
+  worker:
+    build: ./travel-compass-worker
+    env_file:
+      - .env
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_MAPS_KEY=${GOOGLE_MAPS_KEY}
+      # MATCH THE BACKEND EXACTLY BELOW:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/travel_db
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - travel-network
+
+  # 4. Infrastructure: MongoDB
+  mongodb:
+    image: mongo:4.2
+    ports:
+      - 27017:27017
+    networks:
+      - travel-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 5. Infrastructure: Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - travel-network
+
+  # 6. Infrastructure: Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    networks:
+      - travel-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 7. Utility: Auto-create Kafka Topics
+  init-kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      sleep 5;
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic travel-requests --partitions 3 --replication-factor 1
+      "
+    networks:
+      - travel-network
+
+networks:
+  travel-network:
+    driver: bridge
