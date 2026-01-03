@@ -406,3 +406,104 @@
   color: #3b82f6;
   filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
 }
+
+/* Layout Overrides */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Top Navigation Bar */
+.top-nav {
+  height: 60px;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 1000;
+}
+
+.nav-center {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-center button {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #666;
+}
+
+.nav-center button.active {
+  background: #f0f4ff;
+  color: #2563eb;
+}
+
+/* Login Page Styles */
+.login-page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-bottom: 12px;
+  transition: background 0.2s;
+}
+
+.google-btn:hover { background: #fafafa; }
+
+/* My Plans List Styles */
+.user-plans-list {
+  padding: 20px;
+}
+
+.plan-card {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  margin-bottom: 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.plan-card:hover {
+  transform: translateX(5px);
+  border-color: #2563eb;
+}

@@ -9,16 +9,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PlanRepository extends MongoRepository<TravelPlan, String> {
-    // Finds a plan matching destination, start/end dates, and interests
-    // The 'all' operator ensures all interests in the request are present in the document
-    @Query("{ 'destination': ?0, 'startDate': ?1, 'endDate': ?2, 'interests': { $all: ?3 } }")
+
+
+    @Query("{ 'userId': ?0, 'destination': ?1, 'startDate': ?2, 'endDate': ?3, 'interests': { $all: ?4 } }")
     Optional<TravelPlan> findExisting(
+            String userId,
             String destination,
             LocalDate startDate,
             LocalDate endDate,
             List<String> interests
     );
 
-    // Spring generates the logic for save(), findById(), and delete() automatically!
-    List<TravelPlan> findByUserId(String userId);
+
+    List<TravelPlan> findByUserIdOrderByCreatedAtDesc(String userId);
 }

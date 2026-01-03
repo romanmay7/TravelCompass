@@ -44,56 +44,55 @@ public class PlanWorkerService {
     public void listen(PlanRequest request) {
         try {
             String planId = request.getPlanId();
-            System.out.println("✅ Worker received request for Plan ID: " + planId);
+            // Log the user ID as well for better debugging/tracing
+            System.out.println("✅ Worker received request for Plan ID: " + planId + " from User: " + request.getUserId());
 
-            // --- STEP 0: RETRY LOGIC ---
+            // --- STEP 0: OPTIMIZED RETRY LOGIC ---
             TravelPlan existingPlanObject = null;
             int attempts = 0;
-            int maxAttempts = 10; // Increased to 10 for better stability
+            int maxAttempts = 10;
 
-            while (existingPlanObject == null && attempts < maxAttempts) {
-                // IMPORTANT: If findById(String) fails, we try searching the whole list
-                // to avoid ObjectId vs String conversion bugs in Spring Data
-                existingPlanObject = planRepository.findAll().stream()
-                        .filter(p -> p.getId().toString().equals(planId))
-                        .findFirst()
-                        .orElse(null);
+            while (attempts < maxAttempts) {
+                // Attempt a direct ID lookup (Much faster than findAll())
+                Optional<TravelPlan> planOpt = planRepository.findById(planId);
 
-                if (existingPlanObject != null) {
-                    System.out.println("✅ MATCH FOUND in DB! Proceeding to Gemini...");
+                if (planOpt.isPresent()) {
+                    existingPlanObject = planOpt.get();
+                    System.out.println("✅ MATCH FOUND in DB! Proceeding...");
                     break;
                 } else {
                     attempts++;
-                    System.out.println("⏳ Plan ID " + planId + " not found. Attempt " + attempts + "/" + maxAttempts);
+                    System.out.println("⏳ Plan ID " + planId + " not found yet. Attempt " + attempts + "/" + maxAttempts);
                     Thread.sleep(1000);
                 }
             }
 
             if (existingPlanObject == null) {
-                System.err.println("❌ ERROR: Plan ID " + planId + " not found after " + maxAttempts + "s.");
+                System.err.println("❌ ERROR: Plan ID " + planId + " never appeared in DB.");
                 return;
             }
 
-            // --- STEP 1: Ask Gemini for the raw itinerary ---
+            // --- STEP 1: Gemini Call ---
             String rawJson = callGemini(request);
 
-            // --- STEP 2: Parse the JSON ---
-            // Ensure your objectMapper is configured to handle the JSON correctly
+            // --- STEP 2: Parsing ---
             List<DayPlan> itinerary = objectMapper.readValue(rawJson, new TypeReference<List<DayPlan>>(){});
 
-            // --- STEP 3: Enrich with Google Maps ---
+            // --- STEP 3: Google Maps Enrichment ---
             for (DayPlan day : itinerary) {
                 for (Activity activity : day.getActivities()) {
                     enrichWithGoogleData(activity);
                 }
             }
 
-            // --- STEP 4: Update the EXISTING record ---
+            // --- STEP 4: PERSISTENCE ---
             existingPlanObject.setItinerary(itinerary);
-            // Crucial: This saves it back to the exact same document
+            // Ensure the plan remains linked to the user during the save
+            // existingPlanObject.setUserId(request.getUserId()); // Only if it was missing
+
             planRepository.save(existingPlanObject);
 
-            System.out.println("🚀 SUCCESS: Plan " + planId + " is now complete!");
+            System.out.println("🚀 SUCCESS: Itinerary generated and saved for Plan " + planId);
 
         } catch (Exception e) {
             System.err.println("❌ ERROR in Worker: " + e.getMessage());

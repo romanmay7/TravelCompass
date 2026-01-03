@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import com.romanmay7.travel_compass_core.repository.PlanRepository;
 import com.romanmay7.travel_compass_core.service.TravelPlanService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/plans")
 @CrossOrigin(origins = "http://localhost:3000") // Allow React to connect
@@ -22,6 +24,11 @@ public class TravelPlanController {
 
     @PostMapping("/generate")
     public ResponseEntity<?> createPlan(@RequestBody PlanRequest request) {
+        // Validation: Ensure a userId is present if your UI requires login
+        if (request.getUserId() == null || request.getUserId().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User ID is required");
+        }
+
         TravelPlan plan = travelPlanService.getOrGeneratePlan(request);
 
         // If the itinerary is NOT null, it was already in the DB
@@ -31,6 +38,16 @@ public class TravelPlanController {
 
         // If itinerary is null, it's a new placeholder. Return 202 + the object (id included)
         return ResponseEntity.accepted().body(plan);
+    }
+
+    /**
+     * GET: New endpoint for the "My Plans" view.
+     * Fetches all trips associated with a specific logged-in user.
+     */
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<TravelPlan>> getPlansByUserId(@PathVariable String userId) {
+        List<TravelPlan> plans = travelPlanRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return ResponseEntity.ok(plans);
     }
 
     //  POLLING ENDPOINT

@@ -21,7 +21,7 @@ public class TravelPlanService {
     public TravelPlan getOrGeneratePlan(PlanRequest request) {
         // 1. Check if a COMPLETED plan already exists
         Optional<TravelPlan> existing = travelPlanRepository.findExisting(
-                request.getDestination(), request.getStartDate(), request.getEndDate(), request.getInterests());
+                request.getUserId(),request.getDestination(), request.getStartDate(), request.getEndDate(), request.getInterests());
 
         if (existing.isPresent()) {
             return existing.get();
@@ -34,6 +34,8 @@ public class TravelPlanService {
         pendingPlan.setEndDate(request.getEndDate());
         pendingPlan.setInterests(request.getInterests());
         pendingPlan.setItinerary(null); // This signifies it's still "Loading"
+        // --- THIS IS THE MISSING PIECE ---
+        pendingPlan.setUserId(request.getUserId());
 
         // Save it to get the MongoDB _id
         TravelPlan savedPlaceholder = travelPlanRepository.save(pendingPlan);

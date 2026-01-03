@@ -9,18 +9,25 @@ import java.util.Optional;
 
 public interface PlanRepository extends MongoRepository<TravelPlan, String> {
 
-    // Keep your strict search for the "Initial Check" (to avoid duplicate AI calls)
-    @Query("{ 'destination': ?0, 'startDate': ?1, 'endDate': ?2, 'interests': { $all: ?3 } }")
+    /**
+     * 1. THE DUPLICATE PREVENTER
+     * Checks if we already have a COMPLETED plan for this destination/user/date.
+     * We add 'userId' so that users don't accidentally "steal" each other's cached plans
+     * if they have different privacy settings.
+     */
+    @Query("{ 'userId': ?0, 'destination': ?1, 'startDate': ?2, 'endDate': ?3, 'interests': { $all: ?4 } }")
     Optional<TravelPlan> findExisting(
+            String userId,
             String destination,
             LocalDate startDate,
             LocalDate endDate,
             List<String> interests
     );
 
-    // ADD THIS for the Polling Endpoint
-    // This allows the frontend to find the plan with just destination and date
-    Optional<TravelPlan> findByDestinationAndStartDate(String destination, LocalDate startDate);
-
-    List<TravelPlan> findByUserId(String userId);
+    /**
+     * 2. THE USER DASHBOARD QUERY
+     * Fetches the list for the "My Plans" section in your React UI.
+     * We sort by 'createdAt' descending so the newest trips appear first.
+     */
+    List<TravelPlan> findByUserIdOrderByCreatedAtDesc(String userId);
 }
