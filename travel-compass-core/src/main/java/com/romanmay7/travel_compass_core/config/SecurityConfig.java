@@ -45,6 +45,7 @@ public class SecurityConfig {
                 // 4. Configure URL permissions
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/oauth2/**").permitAll() // Public endpoints
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated() // Everything else (including /api/plans/**) needs a token
                 )
 

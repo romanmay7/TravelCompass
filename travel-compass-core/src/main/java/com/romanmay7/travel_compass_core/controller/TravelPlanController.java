@@ -2,6 +2,7 @@ package com.romanmay7.travel_compass_core.controller;
 
 import com.romanmay7.travel_compass_core.model.PlanRequest;
 import com.romanmay7.travel_compass_core.model.TravelPlan;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,7 @@ public class TravelPlanController {
      * GET: New endpoint for the "My Plans" view.
      * Fetches all trips associated with a specific logged-in user.
      */
+    @Operation(summary = "Get all plans for a user", description = "Returns a list of travel plans from MongoDB")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<TravelPlan>> getPlansByUserId(@PathVariable String userId) {
         List<TravelPlan> plans = travelPlanRepository.findByUserIdOrderByCreatedAtDesc(userId);

@@ -6,6 +6,8 @@ import com.romanmay7.travel_compass_core.model.SignupRequest;
 import com.romanmay7.travel_compass_core.model.User;
 import com.romanmay7.travel_compass_core.repository.UserRepository;
 import com.romanmay7.travel_compass_core.security.JwtUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,6 +20,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Endpoints for User Signup and Login")
 public class AuthController {
 
     @Autowired
@@ -31,6 +34,7 @@ public class AuthController {
     private BCryptPasswordEncoder passwordEncoder;
 
     // --- SIGNUP ENDPOINT ---
+    @Operation(summary = "Register a new user")
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody SignupRequest signupRequest) {
         // 1. Check if email already exists
@@ -57,6 +61,7 @@ public class AuthController {
     }
 
     // --- LOGIN ENDPOINT ---
+    @Operation(summary = "Login and receive JWT")
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         Optional<User> userOpt = userRepository.findByEmail(loginRequest.getEmail());
