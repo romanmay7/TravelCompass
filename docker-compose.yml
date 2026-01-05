@@ -22,6 +22,8 @@ services:
       - "8080:8080"
     environment:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       # MATCH THE WORKER EXACTLY BELOW:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/travel_db
@@ -30,6 +32,8 @@ services:
       kafka:
         condition: service_healthy
       mongodb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - travel-network
@@ -40,6 +44,8 @@ services:
     env_file:
       - .env
     environment:
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GOOGLE_MAPS_KEY=${GOOGLE_MAPS_KEY}
       # MATCH THE BACKEND EXACTLY BELOW:
@@ -114,6 +120,21 @@ services:
       "
     networks:
       - travel-network
+
+  # 8. Caching Layer
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
+    networks: # MISSING IN YOUR VERSION
+      - travel-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 networks:
   travel-network:

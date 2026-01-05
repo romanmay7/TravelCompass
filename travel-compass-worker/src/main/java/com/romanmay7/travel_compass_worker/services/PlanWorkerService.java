@@ -9,6 +9,7 @@ import com.romanmay7.travel_compass_worker.model.PlanRequest;
 import com.romanmay7.travel_compass_worker.model.TravelPlan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -36,6 +37,9 @@ public class PlanWorkerService {
 
     @Autowired
     private PlanRepository planRepository;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate; // Inject RedisTemplate
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -91,6 +95,20 @@ public class PlanWorkerService {
             // existingPlanObject.setUserId(request.getUserId()); // Only if it was missing
 
             planRepository.save(existingPlanObject);
+
+            // --- STEP 5: MANUAL CACHE UPDATE ---
+            // This ensures that the NEXT time Core service checks Redis, it gets the FULL plan
+            try {
+                // String cacheKey = "plans::" + planId; // Change this to match EXACTLY
+                String cacheKey = "plans::" + planId;
+
+                // Ensure you are using the Object, not just the ID
+                redisTemplate.opsForValue().set(cacheKey, existingPlanObject);
+
+                System.out.println("💾 Redis cache updated for Plan ID: " + planId + " using key: " + cacheKey);
+            } catch (Exception redisEx) {
+                System.err.println("⚠️ Could not update Redis: " + redisEx.getMessage());
+            }
 
             System.out.println("🚀 SUCCESS: Itinerary generated and saved for Plan " + planId);
 

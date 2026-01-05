@@ -9,18 +9,24 @@ const UserPlansList = ({ onSelectPlan }) => {
     const { user } = useAuth();
 
     useEffect(() => {
-        // Only fetch if user and token exist
-        if (user && user.token) {
-            axios.get(`http://localhost:8080/api/plans/user/${user.id}`, {
-                headers: {
-                    // This is the missing piece!
-                    Authorization: `Bearer ${user.token}`
-                }
-            })
-                .then(res => setPlans(res.data))
-                .catch(err => console.error("Error fetching plans:", err));
-        }
-    }, [user.id, user.token]); // Add user.token to dependency array
+        const fetchPlans = async () => {
+            if (!user?.token || !user?.id) return;
+
+            try {
+                const res = await axios.get(`http://localhost:8080/api/plans/user/${user.id}`, {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`
+                    }
+                });
+                setPlans(res.data);
+            } catch (err) {
+                console.error("Error fetching plans:", err.response?.status);
+                // If you get a 403 here, your JWT is invalid or expired
+            }
+        };
+
+        fetchPlans();
+    }, [user?.id, user?.token]);
 
     return (
         <div className="user-plans-list">

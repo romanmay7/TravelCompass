@@ -53,16 +53,15 @@ public class TravelPlanController {
     //  POLLING ENDPOINT
     @GetMapping("/{id}")
     public ResponseEntity<?> getPlanById(@PathVariable String id) {
-        return travelPlanRepository.findById(id)
-                .map(plan -> {
-                    // If the worker has filled the itinerary, return it
-                    if (plan.getItinerary() != null && !plan.getItinerary().isEmpty()) {
-                        return ResponseEntity.ok(plan);
-                    }
-                    // Otherwise, tell frontend it's still processing
-                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Processing...");
-                })
-                .orElse(ResponseEntity.notFound().build());
+        TravelPlan plan = travelPlanService.getPlanById(id);
+
+        if (plan == null) return ResponseEntity.notFound().build();
+
+        if (plan.getItinerary() == null) {
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body("Processing...");
+        }
+
+        return ResponseEntity.ok(plan);
     }
 }
 

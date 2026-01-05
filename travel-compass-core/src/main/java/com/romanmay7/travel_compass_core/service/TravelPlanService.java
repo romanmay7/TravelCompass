@@ -4,6 +4,8 @@ import com.romanmay7.travel_compass_core.kafka.Producer;
 import com.romanmay7.travel_compass_core.model.PlanRequest;
 import com.romanmay7.travel_compass_core.model.TravelPlan;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import com.romanmay7.travel_compass_core.repository.PlanRepository;
 
@@ -48,5 +50,29 @@ public class TravelPlanService {
 
         return savedPlaceholder; // Return the object containing the ID
     }
+
+    /**
+     * ---------------------REDIS METHODS--------------------------------------------------------------------------------
+     *
+     * Fetches a single plan by ID .When the user clicks a trip in "My Plans" ,it hits this method.
+     */
+    //@Cacheable(value = "plans", key = "#id", unless = "#result == null || #result.itinerary == null")
+    @Cacheable(value = "plans", key = "#id")
+    public TravelPlan getPlanById(String id) {
+        System.out.println("🐢 Redis Miss: Fetching plan " + id + " from MongoDB");
+        return travelPlanRepository.findById(id).orElse(null);
+    }
+    //-----------------------------------------------------------------------------------------------------------------------
+    /**
+     * Used by our Kafka Consumer/Worker.
+     * When the AI worker finishes, it calls this to save the full plan.
+     * @CachePut updates the Redis cache immediately so the user sees the result on the next poll.
+     */
+    @CachePut(value = "plans", key = "#plan.id")
+    public TravelPlan saveFinalPlan(TravelPlan plan) {
+        System.out.println("🚀 Redis Update: Saving completed itinerary for " + plan.getId());
+        return travelPlanRepository.save(plan);
+    }
+    //-----------------------------------------------------------------------------------------------------------------------
 }
 
