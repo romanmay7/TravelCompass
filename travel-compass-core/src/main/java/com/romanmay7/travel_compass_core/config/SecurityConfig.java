@@ -39,8 +39,9 @@ public class SecurityConfig {
                 // 2. Disable CSRF (standard for stateless REST APIs)
                 .csrf(csrf -> csrf.disable())
 
-                // 3. Set session management to stateless (JWT approach)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                //.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //stateless (JWT approach)
+                //3. Must be IF_REQUIRED for OAuth2 to store temporary state
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
                 // 4. Configure URL permissions
                 .authorizeHttpRequests(auth -> auth
@@ -48,6 +49,12 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated() // Everything else (including /api/plans/**) needs a token
                 )
+               /*
+                // 5. This enables the /oauth2/authorization/google endpoint
+                .oauth2Login(oauth2 -> oauth2
+                        // This is where Google redirects back to after user logs in
+                        .defaultSuccessUrl("http://localhost:3001/oauth2/redirect", true)
+                )*/
 
                 // 5. Add the JWT Filter before the standard Username/Password filter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
